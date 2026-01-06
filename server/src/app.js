@@ -35,6 +35,42 @@ export function createApp() {
     res.json({ status: 'ok' });
   });
 
+  app.get('/api/debug', async (_req, res) => {
+    try {
+      // Use mongoose.models to avoid recompiling models or missing schema errors
+      // if models haven't been registered yet, this might fail, but since routes are imported above, it should be fine.
+      const User = mongoose.models.User;
+      const Product = mongoose.models.Product;
+      
+      const admin = User ? await User.findOne({ email: 'admin@example.com' }) : null;
+      const productCount = Product ? await Product.countDocuments() : 0;
+      
+      res.json({
+        status: 'ok',
+        mongoState: mongoose.connection.readyState,
+        env: {
+          MONGO_URI: process.env.MONGO_URI ? 'Set' : 'Not Set',
+          JWT_SECRET: process.env.JWT_SECRET ? 'Set' : 'Not Set'
+        },
+        data: {
+          adminExists: !!admin,
+          productCount,
+          modelsLoaded: {
+            User: !!User,
+            Product: !!Product
+          }
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        status: 'error', 
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+  });
+
   app.use('/api/auth', authRoutes);
   app.use('/api/products', productRoutes);
   app.use('/api/orders', orderRoutes);
