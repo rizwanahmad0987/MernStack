@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import { createApp, connectDB } from './app.js';
+import { ensureAdminUser } from './utils/admin.seed.js';
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ async function start() {
     try {
       await connectDB();
       console.log('MongoDB connected');
+      await ensureAdminUser();
       app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
       return;
     } catch (err) {
