@@ -4,11 +4,21 @@ import { Link, useSearchParams } from 'react-router-dom'
 import useSWR from 'swr'
 import ProductCard from '../components/ProductCard.jsx'
 
-const fetcher = url => fetch(url, { cache: 'no-store' }).then(res => {
+const fetcher = async url => {
+  const res = await fetch(url, { cache: 'no-store' })
   if (res.status === 304) return { products: [] }
-  if (!res.ok) throw new Error('Failed to load')
+  if (!res.ok) {
+    const text = await res.text()
+    try {
+      const json = JSON.parse(text)
+      throw new Error(json.message || json.error || 'Failed to load')
+    } catch (e) {
+      if (e.message !== 'Failed to load' && e.message !== 'Unexpected end of JSON input') throw e
+      throw new Error(`Error ${res.status}: ${res.statusText}`)
+    }
+  }
   return res.json()
-})
+}
 
 function isAdminUpload(p) {
   const url = p.imageUrl || ''
@@ -289,7 +299,8 @@ export default function ProductsPage() {
           {error ? (
             <div className="no-products">
               <h3>Unable to load products</h3>
-              <p>Please check your connection and try again.</p>
+              <p>{error.message}</p>
+              <button className="button" onClick={() => window.location.reload()}>Retry</button>
             </div>
           ) : isLoading ? (
             <div className="loading-container">

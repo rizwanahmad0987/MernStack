@@ -15,6 +15,10 @@ export default async function handler(req, res) {
       await ensureAdminUser();
     } catch (err) {
       console.error('MongoDB connection failed (serverless):', err);
+      return res.status(500).json({ 
+        message: 'Database connection failed', 
+        error: err.message 
+      });
     }
   }
   return app(req, res);
