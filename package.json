@@ -2,6 +2,7 @@
   "name": "mern-webstore",
   "version": "1.0.0",
   "description": "MERN Webstore Root",
+  "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run db:start\" \"npm run server\" \"npm run client\"",
     "db:start": "docker compose up -d mongodb",
