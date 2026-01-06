@@ -1,15 +1,29 @@
 import React, { useEffect, useState } from 'react'
 import { useCart } from '../contexts/CartContext.jsx'
 import { Link, useSearchParams } from 'react-router-dom'
+import useSWR from 'swr'
+import ProductCard from '../components/ProductCard.jsx'
+
+const fetcher = url => fetch(url, { cache: 'no-store' }).then(res => {
+  if (res.status === 304) return { products: [] }
+  if (!res.ok) throw new Error('Failed to load')
+  return res.json()
+})
+
+function isAdminUpload(p) {
+  const url = p.imageUrl || ''
+  return (
+    url.startsWith('/uploads/') ||
+    url.includes('res.cloudinary.com') ||
+    (Array.isArray(p.images) && p.images.some(u => u.startsWith('/uploads/') || u.includes('res.cloudinary.com')))
+  )
+}
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [viewMode, setViewMode] = useState('grid') // grid or list
+  const [viewMode, setViewMode] = useState('grid-5') // grid-3, grid-4, grid-5
   const [sortBy, setSortBy] = useState('featured')
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
   const [searchParams, setSearchParams] = useSearchParams()
   const { addToCart } = useCart()
   
@@ -30,14 +44,42 @@ export default function ProductsPage() {
     setSortBy(sort)
     setCurrentPage(page)
   }, [sort, page])
+
   
-  // Load products based on filters
+  
+  // Construct API URL
+  const params = new URLSearchParams()
+  if (category) params.set('category', category)
+  if (q) params.set('q', q)
+  if (page) params.set('page', page)
+  if (sort) params.set('sort', sort)
+  if (minPrice) params.set('minPrice', minPrice)
+  if (maxPrice) params.set('maxPrice', maxPrice)
+  if (inStock) params.set('inStock', 'true')
+  if (onSale) params.set('onSale', 'true')
+  params.set('limit', productsPerPage)
+
+  const { data, error, isLoading } = useSWR(`/api/products?${params.toString()}`, fetcher, {
+    refreshInterval: 3000
+  })
+
+  const products = data ? (data.products || []) : []
+
+  const visibleProducts = products.filter(isAdminUpload)
+
+  const columnsClassMap = { 'grid-3': 'three', 'grid-4': 'four', 'grid-5': 'five' }
+  const totalPages = Math.max(1, Math.ceil(visibleProducts.length / productsPerPage))
+  const startIndex = (currentPage - 1) * productsPerPage
+  const pagedProducts = visibleProducts.slice(startIndex, startIndex + productsPerPage)
+
   useEffect(() => {
-    setIsLoading(true)
-    loadProducts()
-  }, [category, q, page, sort, minPrice, maxPrice, inStock, onSale])
-  
-  // Load categories once
+    const tp = Math.max(1, Math.ceil(visibleProducts.length / productsPerPage))
+    if (currentPage > tp) {
+      updateFilters({ page: '1' })
+    }
+  }, [currentPage, visibleProducts.length])
+
+  // Load categories once (kept as effect since it changes rarely)
   useEffect(() => {
     loadCategories()
   }, [])
@@ -49,41 +91,6 @@ export default function ProductsPage() {
       setCategories(data.categories || [])
     } catch (error) {
       console.error('Failed to load categories:', error)
-    }
-  }
-  
-  async function loadProducts() {
-    try {
-      const params = new URLSearchParams()
-      if (category) params.set('category', category)
-      if (q) params.set('q', q)
-      if (page) params.set('page', page)
-      if (sort) params.set('sort', sort)
-      if (minPrice) params.set('minPrice', minPrice)
-      if (maxPrice) params.set('maxPrice', maxPrice)
-      if (inStock) params.set('inStock', 'true')
-      if (onSale) params.set('onSale', 'true')
-      params.set('limit', productsPerPage)
-      
-      const res = await fetch(`/api/products?${params.toString()}`)
-      const data = await res.json()
-      
-      // Server returns { products: [...] }
-      if (data.products) {
-        setProducts(data.products)
-        // Calculate total pages based on products length if totalPages not provided
-        setTotalPages(data.totalPages || Math.ceil(data.products.length / productsPerPage))
-      } else {
-        // Fallback for unexpected response format
-        console.error('Unexpected API response format:', data)
-        setProducts([])
-        setTotalPages(1)
-      }
-      
-      setIsLoading(false)
-    } catch (error) {
-      console.error('Failed to load products:', error)
-      setIsLoading(false)
     }
   }
   
@@ -243,7 +250,7 @@ export default function ProductsPage() {
           <div className="products-toolbar">
             <div className="results-count">
               {!isLoading && (
-                <span>{products.length} products</span>
+                <span>{visibleProducts.length} products</span>
               )}
             </div>
             
@@ -260,37 +267,31 @@ export default function ProductsPage() {
               
               <div className="view-options">
                 <button 
-                  className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                  onClick={() => setViewMode('grid')}
-                  title="Grid View"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="3" width="7" height="7"></rect>
-                    <rect x="3" y="14" width="7" height="7"></rect>
-                    <rect x="14" y="14" width="7" height="7"></rect>
-                  </svg>
-                </button>
+                  className={`view-btn ${viewMode === 'grid-3' ? 'active' : ''}`}
+                  onClick={() => setViewMode('grid-3')}
+                  title="3 Columns"
+                >3</button>
                 <button 
-                  className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                  onClick={() => setViewMode('list')}
-                  title="List View"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="8" y1="6" x2="21" y2="6"></line>
-                    <line x1="8" y1="12" x2="21" y2="12"></line>
-                    <line x1="8" y1="18" x2="21" y2="18"></line>
-                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                  </svg>
-                </button>
+                  className={`view-btn ${viewMode === 'grid-4' ? 'active' : ''}`}
+                  onClick={() => setViewMode('grid-4')}
+                  title="4 Columns"
+                >4</button>
+                <button 
+                  className={`view-btn ${viewMode === 'grid-5' ? 'active' : ''}`}
+                  onClick={() => setViewMode('grid-5')}
+                  title="5 Columns"
+                >5</button>
               </div>
             </div>
           </div>
           
           {/* Products Display */}
-          {isLoading ? (
+          {error ? (
+            <div className="no-products">
+              <h3>Unable to load products</h3>
+              <p>Please check your connection and try again.</p>
+            </div>
+          ) : isLoading ? (
             <div className="loading-container">
               <div className="loading-spinner"></div>
             </div>
@@ -301,59 +302,9 @@ export default function ProductsPage() {
               <button className="button" onClick={clearAllFilters}>Clear All Filters</button>
             </div>
           ) : (
-            <div className={`products-${viewMode}`}>
-              {products.map(product => (
-                <div className={`product-item ${viewMode}`} key={product._id}>
-                  <Link to={`/product/${product._id}`} className="product-link">
-                    <div className="product-image">
-                      {product.imageUrl ? (
-                        <img src={product.imageUrl} alt={product.name} loading="lazy" />
-                      ) : (
-                        <div className="product-placeholder"></div>
-                      )}
-                      {product.onSale && <span className="product-badge sale-badge">SALE</span>}
-                      {product.inStock <= 5 && product.inStock > 0 && (
-                        <span className="product-badge stock-badge">Low Stock</span>
-                      )}
-                    </div>
-                    
-                    <div className="product-info">
-                      <h3 className="product-name">{product.name}</h3>
-                      {viewMode === 'list' && (
-                        <p className="product-description">{product.description}</p>
-                      )}
-                      <div className="product-meta">
-                        <span className="product-category">{product.category}</span>
-                        {product.inStock > 0 ? (
-                          <span className="product-stock in-stock">In Stock</span>
-                        ) : (
-                          <span className="product-stock out-of-stock">Out of Stock</span>
-                        )}
-                      </div>
-                      <div className="product-price-row">
-                        {product.onSale ? (
-                          <>
-                            <span className="product-price sale">${product.price.toFixed(2)}</span>
-                            <span className="product-old-price">${(product.price * 1.2).toFixed(2)}</span>
-                          </>
-                        ) : (
-                          <span className="product-price">${product.price.toFixed(2)}</span>
-                        )}
-                      </div>
-                      <button 
-                        className="add-to-cart-button" 
-                        disabled={product.inStock === 0}
-                        onClick={(e) => { 
-                          e.preventDefault(); 
-                          e.stopPropagation(); 
-                          addToCart(product, 1);
-                        }}
-                      >
-                        {product.inStock === 0 ? 'Out of Stock' : 'Add to Cart'}
-                      </button>
-                    </div>
-                  </Link>
-                </div>
+            <div className={`grid ${columnsClassMap[viewMode]}`}>
+              {pagedProducts.map(product => (
+                <ProductCard key={product._id} product={product} />
               ))}
             </div>
           )}
@@ -442,13 +393,13 @@ export default function ProductsPage() {
                 <div className="product-price-row">
                   {quickViewProduct.onSale ? (
                     <>
-                      <span className="product-price sale">${quickViewProduct.price.toFixed(2)}</span>
-                      <span className="product-old-price">${(quickViewProduct.price * 1.2).toFixed(2)}</span>
-                    </>
-                  ) : (
-                    <span className="product-price">${quickViewProduct.price.toFixed(2)}</span>
-                  )}
-                </div>
+                      <span className="product-price sale">PKR {quickViewProduct.price.toFixed(2)}</span>
+                      <span className="product-old-price">PKR {(quickViewProduct.price * 1.2).toFixed(2)}</span>
+                  </>
+                ) : (
+                  <span className="product-price">PKR {quickViewProduct.price.toFixed(2)}</span>
+                )}
+              </div>
                 
                 <div className="product-meta">
                   <span className="meta-item">
@@ -512,4 +463,3 @@ export default function ProductsPage() {
     </div>
   )
 }
-

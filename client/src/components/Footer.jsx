@@ -1,4 +1,5 @@
 import React from 'react';
+import FashionLogo from '../images/Fashion.png'
 import { Link } from 'react-router-dom';
 
 export default function Footer() {
@@ -9,7 +10,9 @@ export default function Footer() {
       <div className="container">
         <div className="footer-content">
           <div className="footer-section">
-            <h3 className="footer-title">MERN Store</h3>
+            <div className="logo" style={{ marginBottom: '0.75rem' }}>
+              <img src={FashionLogo} alt="Logo" />
+            </div>
             <p className="footer-description">
               Your one-stop shop for quality products at affordable prices. We offer a wide range of 
               electronics, clothing, and footwear.
@@ -68,7 +71,7 @@ export default function Footer() {
         </div>
         
         <div className="footer-bottom">
-          <p>&copy; {currentYear} MERN Store. All rights reserved.</p>
+          <p>&copy; {currentYear} Fashion Store. All rights reserved.</p>
           <div className="payment-methods">
             <span>We accept:</span>
             <div className="payment-icons">

@@ -1,0 +1,28 @@
+{
+  "name": "mern-webstore",
+  "version": "1.0.0",
+  "description": "MERN Webstore Root",
+  "scripts": {
+    "dev": "concurrently \"npm run db:start\" \"npm run server\" \"npm run client\"",
+    "db:start": "docker compose up -d mongodb",
+    "db:stop": "docker compose stop mongodb",
+    "client": "cd client && npm run dev",
+    "server": "cd server && npm run dev",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "cloudinary": "^1.41.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.6.0",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.2"
+  },
+  "devDependencies": {
+    "baseline-browser-mapping": "^2.9.11",
+    "concurrently": "^8.2.2"
+  }
+}

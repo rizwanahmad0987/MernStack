@@ -1,28 +1,40 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import useSWR from 'swr'
 import { useCart } from '../contexts/CartContext.jsx'
+import ProductCard from '../components/ProductCard.jsx'
+
+const fetcher = url => fetch(url, { cache: 'no-store' }).then(res => {
+  if (res.status === 304) return { products: [] }
+  if (!res.ok) throw new Error('Failed to load')
+  return res.json()
+})
 
 export default function HomePage() {
-  const [products, setProducts] = useState([])
   const [category, setCategory] = useState('')
   const [q, setQ] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
   const { addToCart } = useCart()
 
-  useEffect(() => { 
-    setIsLoading(true)
-    load() 
-  }, [category, q])
+  const params = new URLSearchParams()
+  if (category) params.set('category', category)
+  if (q) params.set('q', q)
+  
+  const { data, error, isLoading } = useSWR(`/api/products?${params.toString()}`, fetcher, {
+    refreshInterval: 3000 // Poll every 3 seconds for real-time updates
+  })
 
-  async function load() {
-    const params = new URLSearchParams()
-    if (category) params.set('category', category)
-    if (q) params.set('q', q)
-    const res = await fetch('/api/products?' + params.toString())
-    const data = await res.json()
-    setProducts(data.products || data) // Handle both new and old response format
-    setIsLoading(false)
+  const products = data ? (data.products || data) : []
+
+  function isAdminUpload(p) {
+    const url = p.imageUrl || ''
+    return (
+      url.startsWith('/uploads/') ||
+      url.includes('res.cloudinary.com') ||
+      (Array.isArray(p.images) && p.images.some(u => u.startsWith('/uploads/') || u.includes('res.cloudinary.com')))
+    )
   }
+
+  const visibleProducts = products.filter(isAdminUpload)
 
   const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean)))
 
@@ -143,47 +155,22 @@ export default function HomePage() {
       {/* Products Section */}
       <section className="products-section">
         <h2 className="section-title">Featured Products</h2>
-        {isLoading ? (
+        {error ? (
+          <div className="loading-container">
+            <p>Unable to load products. Please retry.</p>
+          </div>
+        ) : isLoading ? (
           <div className="loading-container">
             <div className="loading-spinner"></div>
           </div>
-        ) : products.length === 0 ? (
+        ) : visibleProducts.length === 0 ? (
           <div className="no-products">
             <p>No products found. Try a different search.</p>
           </div>
         ) : (
-          <div className="products-grid">
-            {products.map(p => (
-              <Link to={`/product/${p._id}`} className="product-link" key={p._id}>
-                <div className="product-card">
-                  <div className="product-image" aria-hidden>
-                    {p.imageUrl ? 
-                      <img src={p.imageUrl} alt={p.name} loading="lazy" /> : 
-                      <div className="product-placeholder" />
-                    }
-                    {p.inStock <= 5 && p.inStock > 0 && <span className="product-badge low-stock">Only {p.inStock} left</span>}
-                    {p.inStock === 0 && <span className="product-badge out-of-stock">Out of Stock</span>}
-                  </div>
-                  <div className="product-info">
-                    <h3 className="product-name">{p.name}</h3>
-                    <p className="product-description">{p.description}</p>
-                    <div className="product-details">
-                      <span className="product-price">${p.price.toFixed(2)}</span>
-                    </div>
-                    <button 
-                      className="add-to-cart-button" 
-                      disabled={p.inStock === 0} 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        addToCart(p, 1);
-                      }}
-                    >
-                      {p.inStock === 0 ? 'Out of Stock' : 'Add to Cart'}
-                    </button>
-                  </div>
-                </div>
-              </Link>
+          <div className="grid five">
+            {visibleProducts.map(p => (
+              <ProductCard key={p._id} product={p} />
             ))}
           </div>
         )}
@@ -227,5 +214,3 @@ export default function HomePage() {
     </div>
   )
 }
-
-

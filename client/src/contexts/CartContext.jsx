@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import CartNotification from '../components/CartNotification.jsx'
+import { useToast } from './ToastContext.jsx'
 
 const CartContext = createContext(null)
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]) // [{product, quantity}]
-  const [notification, setNotification] = useState(null) // {product, quantity}
+  const { showSuccess } = useToast()
 
   useEffect(() => {
     const saved = localStorage.getItem('cart')
@@ -28,12 +28,7 @@ export function CartProvider({ children }) {
     })
     
     // Show notification
-    setNotification({ product, quantity })
-    
-    // Auto-hide notification after 5 seconds
-    setTimeout(() => {
-      setNotification(null)
-    }, 5000)
+    showSuccess(`Added ${quantity} ${product.name} to cart`)
   }
 
   function updateQuantity(productId, quantity) {
@@ -42,7 +37,11 @@ export function CartProvider({ children }) {
   }
 
   function removeFromCart(productId) {
+    const item = items.find(x => x.product._id === productId)
     setItems(prev => prev.filter(x => x.product._id !== productId))
+    if (item) {
+      showSuccess(`Removed ${item.product.name} from cart`)
+    }
   }
 
   function clearCart() { setItems([]) }
@@ -50,20 +49,10 @@ export function CartProvider({ children }) {
   const total = useMemo(() => items.reduce((sum, x) => sum + x.product.price * x.quantity, 0), [items])
   const itemCount = useMemo(() => items.reduce((sum, x) => sum + x.quantity, 0), [items])
 
-  const closeNotification = () => {
-    setNotification(null)
-  }
-
   const value = { items, addToCart, updateQuantity, removeFromCart, clearCart, total, itemCount }
   return (
     <CartContext.Provider value={value}>
       {children}
-      {notification && (
-        <CartNotification 
-          product={notification.product} 
-          onClose={closeNotification} 
-        />
-      )}
     </CartContext.Provider>
   )
 }

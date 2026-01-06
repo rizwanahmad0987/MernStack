@@ -43,15 +43,12 @@ export async function getProduct(req, res) {
 
 export async function createProduct(req, res) {
   try {
-    // Handle image files if they exist
     const productData = { ...req.body };
-    
-    // Initialize images array
     let imageUrls = [];
     
-    // Add uploaded image files to the images array
-    if (req.files && req.files.length > 0) {
-      // Create URLs for the uploaded images
+    if (req.uploadedImageUrls && req.uploadedImageUrls.length > 0) {
+      imageUrls = [...imageUrls, ...req.uploadedImageUrls];
+    } else if (req.files && req.files.length > 0) {
       const uploadedImageUrls = req.files.map(file => `/uploads/products/${file.filename}`);
       imageUrls = [...imageUrls, ...uploadedImageUrls];
     }
@@ -95,12 +92,11 @@ export async function updateProduct(req, res) {
     // Prepare update data
     const updateData = { ...req.body };
     
-    // Initialize new image URLs array
     let newImageUrls = [];
     
-    // Handle new image uploads
-    if (req.files && req.files.length > 0) {
-      // Create URLs for the uploaded images
+    if (req.uploadedImageUrls && req.uploadedImageUrls.length > 0) {
+      newImageUrls = [...newImageUrls, ...req.uploadedImageUrls];
+    } else if (req.files && req.files.length > 0) {
       const uploadedImageUrls = req.files.map(file => `/uploads/products/${file.filename}`);
       newImageUrls = [...newImageUrls, ...uploadedImageUrls];
     }
@@ -154,4 +150,11 @@ export async function deleteProduct(req, res) {
   }
 }
 
-
+export async function deleteAllProducts(_req, res) {
+  try {
+    const result = await Product.deleteMany({});
+    res.json({ message: 'All products deleted', deletedCount: result.deletedCount || 0 });
+  } catch (e) {
+    res.status(400).json({ message: 'Bulk delete failed', error: e.message });
+  }
+}

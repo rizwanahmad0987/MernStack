@@ -1,49 +1,90 @@
 import multer from 'multer';
+import { v2 as cloudinary } from 'cloudinary';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-// Ensure upload directories exist
-const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-const productImagesDir = path.join(uploadDir, 'products');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Create directories if they don't exist
-[uploadDir, productImagesDir].forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-});
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUD_NAME;
+const apiKey = process.env.CLOUDINARY_API_KEY || process.env.API_KEY;
+const apiSecret = process.env.CLOUDINARY_API_SECRET || process.env.API_SECRET;
+const hasCloudinaryURL = !!process.env.CLOUDINARY_URL;
+const useCloudinary = !!cloudName || hasCloudinaryURL;
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, productImagesDir);
-  },
-  filename: function (req, file, cb) {
-    // Create unique filename with original extension
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, `product-${uniqueSuffix}${ext}`);
-  }
-});
-
-// File filter to only allow images
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
+if (useCloudinary) {
+  if (hasCloudinaryURL && !cloudName) {
+    cloudinary.config({ secure: true });
   } else {
-    cb(new Error('Only image files are allowed!'), false);
+    cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret });
+  }
+}
+
+// Ensure upload directory exists for local storage
+const uploadDir = path.join(__dirname, '../../public/uploads/products');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// File filter: allow any image/* mimetype (jpeg, png, gif, webp, svg, etc.)
+const fileFilter = (_req, file, cb) => {
+  if (file.mimetype && file.mimetype.startsWith('image/')) {
+    cb(null, true)
+  } else {
+    cb(new Error('Only image files are allowed!'), false)
   }
 };
 
-// Export middleware
-export const uploadProductImages = multer({
+// Storage configuration
+const storage = useCloudinary 
+  ? multer.memoryStorage() 
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, 'product-' + uniqueSuffix + ext);
+      }
+    });
+
+const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max file size
+    fileSize: 10 * 1024 * 1024, // Increased to 10MB
   },
   fileFilter: fileFilter
-}).array('images', 5); // Allow up to 5 images
+}).array('images', 5);
+
+export function handleUpload(req, res, next) {
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ message: 'Image upload failed', error: err.message });
+    }
+
+    if (useCloudinary && req.files && req.files.length > 0) {
+      try {
+        const folder = process.env.CLOUDINARY_FOLDER || 'mern-webstore/products';
+        const uploadOne = (file) => new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream({ folder }, (error, result) => {
+            if (error) return reject(error);
+            resolve(result.secure_url);
+          });
+          stream.end(file.buffer);
+        });
+
+        const urls = await Promise.all(req.files.map(uploadOne));
+        req.uploadedImageUrls = urls;
+      } catch (e) {
+        return res.status(400).json({ message: 'Cloud upload failed', error: e.message });
+      }
+    }
+
+    next();
+  });
+}
 
 // Helper to get the URL path for uploaded files
 export function getImageUrl(filename) {

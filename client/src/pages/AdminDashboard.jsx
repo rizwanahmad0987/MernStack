@@ -1,9 +1,26 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import useSWR from 'swr'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { useToast } from '../contexts/ToastContext.jsx'
+import ConfirmationModal from '../components/ConfirmationModal.jsx'
+import ProductCard from '../components/ProductCard.jsx'
+
+const fetcher = url => fetch(url, { cache: 'no-store' }).then(res => {
+  if (res.status === 304) return { products: [] }
+  if (!res.ok) throw new Error('Failed to load')
+  return res.json()
+})
 
 export default function AdminDashboard() {
-  const { token } = useAuth()
-  const [products, setProducts] = useState([])
+  const { token, logout } = useAuth()
+  const navigate = useNavigate()
+  const { showSuccess, showError, showWarning } = useToast()
+  
+  // Real-time products fetching
+  const { data, mutate } = useSWR('/api/products', fetcher, { refreshInterval: 3000 })
+  const products = data ? (data.products || []) : []
+
   const [form, setForm] = useState({ 
     name: '', 
     price: '', 
@@ -17,14 +34,13 @@ export default function AdminDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [imageInputMethod, setImageInputMethod] = useState('upload') // 'upload' or 'url'
   const fileInputRef = useRef(null)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [productToDelete, setProductToDelete] = useState(null)
+  const [viewMode, setViewMode] = useState('grid-5') // grid-3, grid-4, grid-5
 
-  async function load() {
-    const res = await fetch('/api/products')
-    const data = await res.json()
-    setProducts(data.products || [])
-  }
+  const columnsClassMap = { 'grid-3': 'three', 'grid-4': 'four', 'grid-5': 'five' }
 
-  useEffect(() => { load() }, [])
+  // SWR provides live data; no manual load needed
 
   // Handle image selection
   function handleImageSelect(e) {
@@ -42,12 +58,12 @@ export default function AdminDashboard() {
     
     // Basic URL validation
     if (!imageUrl.match(/^https?:\/\/.+\..+/i)) {
-      alert('Please enter a valid image URL')
+      showWarning('Please enter a valid image URL')
       return
     }
     
     if (imagePreviewUrls.length >= 5) {
-      alert('Maximum of 5 images allowed')
+      showWarning('Maximum of 5 images allowed')
       return
     }
     
@@ -109,6 +125,13 @@ export default function AdminDashboard() {
         body: formData
       })
       
+      if (res.status === 401) {
+        showError('Session expired. Please login again.')
+        logout()
+        navigate('/login')
+        return
+      }
+
       if (res.ok) {
         // Reset form and selected images
         setForm({ name: '', price: '', category: 'Shoes', inStock: 0, description: '' })
@@ -124,27 +147,53 @@ export default function AdminDashboard() {
         }
         
         // Reload products
-        load()
+        mutate()
+        showSuccess('Product created successfully')
       } else {
         const errorData = await res.json()
         console.error('Error creating product:', errorData)
-        alert(`Failed to create product: ${errorData.message || 'Unknown error'}`)
+        showError(`Failed to create product: ${errorData.message || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error submitting form:', error)
-      alert('An error occurred while creating the product')
+      showError('An error occurred while creating the product')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  async function remove(id) {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      const res = await fetch(`/api/products/${id}`, { 
+  function initiateDelete(id) {
+    setProductToDelete(id)
+    setDeleteModalOpen(true)
+  }
+
+  async function confirmDelete() {
+    if (!productToDelete) return
+    
+    try {
+      const res = await fetch(`/api/products/${productToDelete}`, { 
         method: 'DELETE', 
         headers: { Authorization: `Bearer ${token}` } 
       })
-      if (res.ok) load()
+      
+      if (res.status === 401) {
+        showError('Session expired. Please login again.')
+        logout()
+        navigate('/login')
+        return
+      }
+      
+      if (res.ok) {
+        mutate()
+        showSuccess('Product deleted successfully')
+      } else {
+        showError('Failed to delete product')
+      }
+    } catch (error) {
+      showError('An error occurred while deleting the product')
+    } finally {
+      setDeleteModalOpen(false)
+      setProductToDelete(null)
     }
   }
 
@@ -299,63 +348,90 @@ export default function AdminDashboard() {
         </button>
       </form>
 
-      <h3 style={{marginTop: '2rem'}}>Products</h3>
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Image</th>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Price</th>
-            <th>Stock</th>
-            <th>Sold</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div className="product-list">
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
+          <h3>Products ({products.length})</h3>
+          <div className="view-options" style={{display: 'flex', gap: '5px'}}>
+            <button 
+              className={`view-btn ${viewMode === 'grid-3' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid-3')}
+              title="3 Columns"
+              style={{padding: '5px 10px', background: viewMode === 'grid-3' ? '#e7e7e7' : 'transparent', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer'}}
+            >3</button>
+            <button 
+              className={`view-btn ${viewMode === 'grid-4' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid-4')}
+              title="4 Columns"
+              style={{padding: '5px 10px', background: viewMode === 'grid-4' ? '#e7e7e7' : 'transparent', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer'}}
+            >4</button>
+            <button 
+              className={`view-btn ${viewMode === 'grid-5' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid-5')}
+              title="5 Columns"
+              style={{padding: '5px 10px', background: viewMode === 'grid-5' ? '#e7e7e7' : 'transparent', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer'}}
+            >5</button>
+          </div>
+          <button 
+            style={{padding: '6px 10px', border: '1px solid #dc3545', color: '#dc3545', borderRadius: '4px', cursor: 'pointer'}}
+            onClick={() => setDeleteModalOpen('all')}
+            title="Reset all products"
+          >Reset Products</button>
+        </div>
+        <div className={`grid ${columnsClassMap[viewMode]}`}>
           {products.map(p => (
-            <tr key={p._id}>
-              <td>
-                {(p.imageUrl || (p.images && p.images.length > 0)) ? (
-                  <img 
-                    src={p.imageUrl || p.images[0]} 
-                    alt={p.name}
-                    style={{
-                      width: '50px',
-                      height: '50px',
-                      objectFit: 'cover',
-                      borderRadius: 'var(--radius)'
-                    }}
-                  />
-                ) : (
-                  <div style={{
-                    width: '50px',
-                    height: '50px',
-                    background: '#eee',
-                    borderRadius: 'var(--radius)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#999'
-                  }}>
-                    No img
-                  </div>
-                )}
-              </td>
-              <td>{p.name}</td>
-              <td>{p.category}</td>
-              <td>${p.price.toFixed(2)}</td>
-              <td>{p.inStock}</td>
-              <td>{p.sold || 0}</td>
-              <td>
-                <button className="linklike" onClick={() => remove(p._id)}>delete</button>
-              </td>
-            </tr>
+            <ProductCard 
+              key={p._id} 
+              product={p} 
+              customAction={
+                <button 
+                  className="amz-btn-primary" 
+                  style={{background: '#dc3545', borderColor: '#dc3545', color: 'white'}} 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    initiateDelete(p._id);
+                  }}
+                >
+                  Delete
+                </button>
+              }
+            />
           ))}
-        </tbody>
-      </table>
+        </div>
+      </div>
+      
+      {deleteModalOpen && deleteModalOpen !== 'all' && (
+        <ConfirmationModal 
+          isOpen={!!deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={confirmDelete}
+          title="Delete Product"
+          message="Are you sure you want to delete this product? This action cannot be undone."
+          confirmText="Delete"
+          type="delete"
+        />
+      )}
+      {deleteModalOpen === 'all' && (
+        <ConfirmationModal 
+          isOpen={true}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={async () => {
+            try {
+              const res = await fetch('/api/products', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+              if (res.status === 401) {
+                showError('Session expired. Please login again.')
+                logout(); navigate('/login'); return
+              }
+              if (res.ok) { mutate(); showSuccess('All products deleted'); }
+              else { showError('Failed to reset products'); }
+            } catch (e) { showError('Error resetting products') }
+            finally { setDeleteModalOpen(false) }
+          }}
+          title="Reset Products"
+          message="This will delete ALL products. Are you sure?"
+          confirmText="Reset"
+          type="delete"
+        />
+      )}
     </div>
   )
 }
-
-

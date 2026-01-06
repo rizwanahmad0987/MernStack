@@ -1,43 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext.jsx';
+
+const fetcher = (url, token) => fetch(url, {
+  headers: { Authorization: `Bearer ${token}` }
+}).then(res => {
+  if (!res.ok) throw new Error('Failed to fetch orders');
+  return res.json();
+});
 
 export default function OrdersPage() {
   const { user, token } = useAuth();
-  const [orders, setOrders] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (user && token) {
-      fetchOrders();
-    }
-  }, [user, token]);
-
-  const fetchOrders = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch('/api/orders/me', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch orders');
-      }
-      
-      const data = await response.json();
-      setOrders(data);
-    } catch (err) {
-      console.error('Error fetching orders:', err);
-      setError('Unable to load your orders. Please try again later.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  
+  const { data: orders, error, isLoading, mutate } = useSWR(
+    user && token ? '/api/orders/me' : null,
+    (url) => fetcher(url, token),
+    { refreshInterval: 3000 }
+  );
 
   const formatDate = (dateString) => {
     const options = { 
@@ -88,10 +68,10 @@ export default function OrdersPage() {
         </div>
       ) : error ? (
         <div className="error-message">
-          <p>{error}</p>
-          <button onClick={fetchOrders} className="button primary">Try Again</button>
+          <p>{error.message || 'Unable to load your orders. Please try again later.'}</p>
+          <button onClick={() => mutate()} className="button primary">Try Again</button>
         </div>
-      ) : orders.length === 0 ? (
+      ) : !orders || orders.length === 0 ? (
         <div className="empty-orders">
           <div className="empty-orders-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">

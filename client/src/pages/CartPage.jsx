@@ -1,13 +1,26 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../contexts/CartContext.jsx'
+import ConfirmationModal from '../components/ConfirmationModal.jsx'
 
 export default function CartPage() {
   const { items, updateQuantity, removeFromCart, total, itemCount } = useCart()
+  const [itemToDelete, setItemToDelete] = useState(null)
   
   const handleQuantityChange = (productId, newQuantity) => {
     if (newQuantity > 0) {
       updateQuantity(productId, newQuantity)
+    }
+  }
+
+  const confirmDelete = (id) => {
+    setItemToDelete(id)
+  }
+
+  const executeDelete = () => {
+    if (itemToDelete) {
+      removeFromCart(itemToDelete)
+      setItemToDelete(null)
     }
   }
 
@@ -90,7 +103,7 @@ export default function CartPage() {
                 <div className="cart-item-actions">
                   <button 
                     className="remove-item" 
-                    onClick={() => removeFromCart(product._id)}
+                    onClick={() => confirmDelete(product._id)}
                     title="Remove item"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -140,6 +153,14 @@ export default function CartPage() {
           </div>
         </div>
       )}
+      
+      <ConfirmationModal
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={executeDelete}
+        title="Remove Item"
+        message="Are you sure you want to remove this item from your cart?"
+      />
     </div>
   )
 }

@@ -1,62 +1,41 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import useSWR from 'swr'
 import { useCart } from '../contexts/CartContext.jsx'
+
+const fetcher = url => fetch(url).then(res => {
+  if (!res.ok) {
+    const error = new Error('An error occurred while fetching the data.')
+    error.status = res.status
+    throw error
+  }
+  return res.json()
+})
 
 export default function ProductPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { addToCart } = useCart()
-  const [product, setProduct] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('details')
-  const [relatedProducts, setRelatedProducts] = useState([])
 
-  useEffect(() => {
-    loadProduct()
-  }, [id])
-
-  async function loadProduct() {
-    try {
-      setLoading(true)
-      setError('')
-      const res = await fetch(`/api/products/${id}`)
-      if (!res.ok) {
-        if (res.status === 404) {
-          setError('Product not found')
-        } else {
-          setError('Failed to load product')
-        }
-        return
-      }
-      const productData = await res.json()
-      setProduct(productData)
-      
-      // Load related products after we have the current product
-      if (productData.category) {
-        loadRelatedProducts(productData.category, productData._id)
-      }
-    } catch (err) {
-      setError('Failed to load product')
-    } finally {
-      setLoading(false)
-    }
+  const safeNumber = (val, def = 0) => {
+    const n = Number(val)
+    return Number.isFinite(n) ? n : def
   }
+
+  const { data: product, error: productError, isLoading: loading } = useSWR(id ? `/api/products/${id}` : null, fetcher, { 
+    refreshInterval: 3000 
+  })
+
+  const { data: relatedData } = useSWR(
+    product?.category ? `/api/products?category=${encodeURIComponent(product.category)}&limit=4` : null,
+    fetcher
+  )
+
+  const relatedProducts = relatedData ? (relatedData.products || []).filter(p => p._id !== id).slice(0, 4) : []
   
-  async function loadRelatedProducts(category, currentProductId) {
-    try {
-      const res = await fetch(`/api/products?category=${encodeURIComponent(category)}&limit=4`)
-      if (res.ok) {
-        const data = await res.json()
-        // Filter out the current product and limit to 4 items
-        const filtered = data.products.filter(p => p._id !== currentProductId).slice(0, 4)
-        setRelatedProducts(filtered)
-      }
-    } catch (err) {
-      console.error('Failed to load related products', err)
-    }
-  }
+  const error = productError ? (productError.status === 404 ? 'Product not found' : 'Failed to load product') : ''
 
   function handleAddToCart() {
     if (product && quantity > 0) {
@@ -125,7 +104,7 @@ export default function ProductPage() {
             </div>
 
             <div className="product-price-section">
-              <span className="product-price">${product.price.toFixed(2)}</span>
+              <span className="product-price">PKR {safeNumber(product.price, 0).toFixed(2)}</span>
               {product.onSale && (
                 <span className="product-sale-badge">On Sale!</span>
               )}
@@ -326,4 +305,3 @@ export default function ProductPage() {
     </div>
   )
 }
-

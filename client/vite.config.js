@@ -7,8 +7,8 @@ export default defineConfig({
     port: 5173,
     host: true, // Listen on all network interfaces for Docker
     proxy: {
-      '/api': process.env.VITE_API_PROXY || 'http://server:5000',
-      '/uploads': process.env.VITE_API_PROXY || 'http://server:5000'
+      '/api': process.env.VITE_API_PROXY || 'http://localhost:5000',
+      '/uploads': process.env.VITE_API_PROXY || 'http://localhost:5000'
     }
   }
 })
