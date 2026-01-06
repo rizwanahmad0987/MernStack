@@ -16,7 +16,7 @@ export default function LoginPage() {
       await login(email, password)
       nav('/')
     } catch (e) {
-      setError('Invalid credentials')
+      setError(e.message || 'Invalid credentials')
     }
   }
 

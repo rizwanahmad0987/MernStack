@@ -30,13 +30,27 @@ export function AuthProvider({ children }) {
   }
 
   async function login(email, password) {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    })
-    if (!res.ok) throw new Error('Login failed')
-    const data = await res.json()
-    saveAuth(data.token, data.user)
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      if (!res.ok) {
+        let errMsg = 'Login failed';
+        try {
+          const json = await res.json();
+          errMsg = json.message || json.error || errMsg;
+        } catch (e) {
+          errMsg = `Server Error: ${res.status} ${res.statusText}`;
+        }
+        throw new Error(errMsg);
+      }
+      const data = await res.json()
+      saveAuth(data.token, data.user)
+    } catch (err) {
+      console.error('Login error:', err);
+      throw err;
+    }
   }
 
   async function register(name, email, password) {
