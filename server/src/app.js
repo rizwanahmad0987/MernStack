@@ -89,10 +89,18 @@ export async function connectDB() {
     : MONGO_URI;
   console.log('Attempting to connect to MongoDB at:', maskedURI);
   try {
-    await mongoose.connect(MONGO_URI);
+    // Add connection options for better stability in serverless
+    await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 5000, // Fail fast if connection is bad
+      socketTimeoutMS: 45000,
+    });
     console.log('MongoDB connected successfully');
   } catch (error) {
     console.error('MongoDB connection error:', error);
-    process.exit(1);
+    // Do NOT exit process in serverless/Vercel environment
+    if (process.env.NODE_ENV !== 'production') {
+      process.exit(1);
+    }
+    throw error; // Re-throw to be caught by handler
   }
 }
