@@ -1,0 +1,512 @@
+/* Common styles for all customer service pages */
+.policy-page,
+.contact-page,
+.faq-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.policy-container,
+.contact-container,
+.faq-container {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 2rem;
+  margin-top: 2rem;
+}
+
+/* Policy Pages Common Styles */
+.policy-section {
+  margin-bottom: 3rem;
+}
+
+.policy-section:last-child {
+  margin-bottom: 0;
+}
+
+.policy-section h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: var(--primary);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.policy-section h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1.5rem 0 1rem;
+  color: var(--text);
+}
+
+.policy-section p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.policy-section ul,
+.policy-section ol {
+  margin: 1rem 0 1.5rem 1.5rem;
+}
+
+.policy-section li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.contact-info-list {
+  list-style: none;
+  margin-left: 0 !important;
+  padding-left: 0;
+}
+
+.contact-info-list li {
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.contact-info-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--primary);
+  font-weight: bold;
+}
+
+.note {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-left: 4px solid var(--primary);
+  margin: 1.5rem 0;
+  font-size: 0.9rem;
+}
+
+/* Contact Page Styles */
+.contact-container {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 3rem;
+}
+
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.contact-info-item {
+  display: flex;
+  gap: 1rem;
+}
+
+.contact-info-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.contact-info-item h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.contact-info-item p {
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.contact-form-container {
+  background: #f8f9fa;
+  padding: 2rem;
+  border-radius: var(--radius);
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.contact-form .form-group {
+  margin: 0;
+}
+
+.contact-form .form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.contact-form textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  resize: vertical;
+  min-height: 120px;
+}
+
+.contact-form textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.submit-button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.submit-button:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.submit-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.success-message,
+.error-message {
+  padding: 1rem;
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+}
+
+.success-message {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.error-message {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.contact-map {
+  margin-top: 3rem;
+}
+
+.contact-map h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.map-placeholder {
+  background: #f1f5f9;
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  color: var(--muted);
+}
+
+/* FAQ Page Styles */
+.faq-container {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 2rem;
+}
+
+.faq-sidebar {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  align-self: start;
+  position: sticky;
+  top: 100px;
+}
+
+.faq-sidebar h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+}
+
+.faq-categories {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem;
+}
+
+.faq-categories li {
+  margin-bottom: 0.5rem;
+}
+
+.faq-categories button {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.faq-categories button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.faq-categories button.active {
+  background: var(--primary);
+  color: white;
+}
+
+.faq-help {
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.faq-help p {
+  margin-bottom: 1.25rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.faq-category {
+  display: block;
+}
+
+.faq-category.hidden {
+  display: none;
+}
+
+.faq-category h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.faq-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.faq-question {
+  padding: 1.25rem;
+  background: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.faq-question:hover {
+  background: #f1f5f9;
+}
+
+.faq-question h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.faq-toggle {
+  font-size: 1.5rem;
+  color: var(--primary);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.faq-answer {
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.faq-item.open .faq-answer {
+  padding: 1.25rem;
+  max-height: 500px;
+}
+
+/* Shipping Policy Page Styles */
+.shipping-table {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 1.5rem 0;
+}
+
+.shipping-table-header,
+.shipping-table-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+.shipping-table-header {
+  background: #f1f5f9;
+  font-weight: 600;
+  padding: 1rem;
+}
+
+.shipping-table-row {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.shipping-table-row:nth-child(even) {
+  background: #f8fafc;
+}
+
+/* Returns & Exchanges Page Styles */
+.process-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.process-step {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.step-number {
+  width: 36px;
+  height: 36px;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.step-content h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.refund-methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.refund-method {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  border-top: 3px solid var(--primary);
+}
+
+.refund-method h3 {
+  margin-top: 0;
+}
+
+/* Privacy Policy Page Styles */
+.info-usage-grid,
+.rights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.info-usage-item,
+.rights-item {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+}
+
+.info-usage-item h3,
+.rights-item h3 {
+  margin-top: 0;
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+
+/* Responsive Styles */
+@media (max-width: 992px) {
+  .contact-container,
+  .faq-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .faq-sidebar {
+    position: static;
+    margin-bottom: 2rem;
+  }
+  
+  .shipping-table-header,
+  .shipping-table-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .shipping-table-header div:not(:first-child),
+  .shipping-table-row div:not(:first-child) {
+    padding-top: 0.5rem;
+  }
+  
+  .shipping-table-header div:not(:first-child)::before,
+  .shipping-table-row div:not(:first-child)::before {
+    content: attr(data-label);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .policy-container,
+  .contact-container,
+  .faq-container {
+    padding: 1.5rem;
+  }
+  
+  .policy-section h2 {
+    font-size: 1.5rem;
+  }
+  
+  .process-step {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .step-number {
+    margin-bottom: 0.25rem;
+  }
+}
