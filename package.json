@@ -8,6 +8,7 @@
     "db:stop": "docker compose stop mongodb",
     "client": "cd client && npm run dev",
     "server": "cd server && npm run dev",
+    "build": "cd client && npm install && npm run build",
     "install:all": "npm install && cd client && npm install && cd ../server && npm install"
   },
   "dependencies": {
